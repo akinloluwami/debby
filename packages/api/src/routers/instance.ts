@@ -13,10 +13,12 @@ import {
   listManagedContainers,
   syncDatabaseWithDocker,
   getContainerLogs,
+  listPostgresExtensions,
+  enablePostgresExtension,
+  disablePostgresExtension,
 } from "../utils/docker";
 
 export const instanceRouter = router({
-  // Start a database instance
   start: publicProcedure
     .input(
       z.object({
@@ -31,7 +33,6 @@ export const instanceRouter = router({
           throw new Error("Database not found");
         }
 
-        // If container doesn't exist, create it
         if (!database.containerId) {
           const containerId = await createContainer(database);
           updateDatabaseStatus(database.id, "running", containerId);
@@ -43,7 +44,6 @@ export const instanceRouter = router({
           };
         }
 
-        // Start existing container
         await startContainer(database.containerId);
         updateDatabaseStatus(database.id, "running");
 
@@ -61,7 +61,6 @@ export const instanceRouter = router({
       }
     }),
 
-  // Stop a database instance
   stop: publicProcedure
     .input(
       z.object({
@@ -217,4 +216,126 @@ export const instanceRouter = router({
         );
       }
     }),
+
+  extensions: router({
+    list: publicProcedure
+      .input(
+        z.object({
+          id: z.string(),
+        }),
+      )
+      .query(async ({ input }) => {
+        try {
+          console.log(
+            "[Extensions List] Looking up database with ID:",
+            input.id,
+          );
+          const database = getDatabaseById(input.id);
+
+          if (!database) {
+            console.error(
+              "[Extensions List] Database not found for ID:",
+              input.id,
+            );
+            throw new Error("Database not found");
+          }
+
+          console.log(
+            "[Extensions List] Found database:",
+            database.name,
+            "Type:",
+            database.type,
+          );
+
+          if (database.type !== "postgresql") {
+            throw new Error("Extensions are only supported for PostgreSQL");
+          }
+
+          if (!database.containerId) {
+            throw new Error("No container associated with this database");
+          }
+
+          const status = await getContainerStatus(database.containerId);
+          if (status !== "running") {
+            throw new Error("Database container must be running");
+          }
+
+          const extensions = await listPostgresExtensions(
+            database.containerId,
+            database.username,
+            database.password,
+            database.name,
+          );
+
+          return extensions;
+        } catch (error) {
+          throw new Error(
+            error instanceof Error
+              ? error.message
+              : "Failed to list extensions",
+          );
+        }
+      }),
+
+    toggle: publicProcedure
+      .input(
+        z.object({
+          id: z.string(),
+          extension: z.string(),
+          enable: z.boolean(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const database = getDatabaseById(input.id);
+
+          if (!database) {
+            throw new Error("Database not found");
+          }
+
+          if (database.type !== "postgresql") {
+            throw new Error("Extensions are only supported for PostgreSQL");
+          }
+
+          if (!database.containerId) {
+            throw new Error("No container associated with this database");
+          }
+
+          const status = await getContainerStatus(database.containerId);
+          if (status !== "running") {
+            throw new Error("Database container must be running");
+          }
+
+          if (input.enable) {
+            await enablePostgresExtension(
+              database.containerId,
+              database.username,
+              database.password,
+              database.name,
+              input.extension,
+            );
+          } else {
+            await disablePostgresExtension(
+              database.containerId,
+              database.username,
+              database.password,
+              database.name,
+              input.extension,
+            );
+          }
+
+          return {
+            success: true,
+            name: input.extension,
+            enabled: input.enable,
+          };
+        } catch (error) {
+          throw new Error(
+            error instanceof Error
+              ? error.message
+              : "Failed to toggle extension",
+          );
+        }
+      }),
+  }),
 });
