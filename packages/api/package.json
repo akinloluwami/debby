@@ -15,15 +15,20 @@
     "build": "tsdown"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/dockerode": "^3.3.44",
     "tsdown": "^0.15.5"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@trpc/server": "^11.5.0",
     "@trpc/client": "^11.5.0",
+    "@trpc/server": "^11.5.0",
+    "bcrypt": "^6.0.0",
+    "dockerode": "^4.0.9",
     "dotenv": "^17.2.2",
+    "get-port": "^7.1.0",
     "zod": "^4.1.11"
   }
 }
