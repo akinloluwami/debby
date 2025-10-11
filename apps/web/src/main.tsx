@@ -4,16 +4,22 @@ import Loader from "./components/loader";
 import { routeTree } from "./routeTree.gen";
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient, trpc } from "./utils/trpc";
+import { queryClient, TRPCProvider, createTRPCClientInstance } from "./utils/trpc";
+
+const trpcClient = createTRPCClientInstance();
 
 const router = createRouter({
 	routeTree,
 	defaultPreload: "intent",
 	defaultPendingComponent: () => <Loader />,
-	context: { trpc, queryClient },
+	context: { queryClient },
 	Wrap: function WrapComponent({ children }: { children: React.ReactNode }) {
 		return (
-			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+			<QueryClientProvider client={queryClient}>
+				<TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
+					{children}
+				</TRPCProvider>
+			</QueryClientProvider>
 		);
 	},
 });
