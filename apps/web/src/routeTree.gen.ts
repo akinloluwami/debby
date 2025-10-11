@@ -18,6 +18,7 @@ import { Route as DbDbIdRouteImport } from './routes/db/$dbId'
 import { Route as DbDbIdSettingsRouteImport } from './routes/db/$dbId/settings'
 import { Route as DbDbIdLogsRouteImport } from './routes/db/$dbId/logs'
 import { Route as DbDbIdInfoRouteImport } from './routes/db/$dbId/info'
+import { Route as DbDbIdExtensionsRouteImport } from './routes/db/$dbId/extensions'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -64,6 +65,11 @@ const DbDbIdInfoRoute = DbDbIdInfoRouteImport.update({
   path: '/info',
   getParentRoute: () => DbDbIdRoute,
 } as any)
+const DbDbIdExtensionsRoute = DbDbIdExtensionsRouteImport.update({
+  id: '/extensions',
+  path: '/extensions',
+  getParentRoute: () => DbDbIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/db/$dbId': typeof DbDbIdRouteWithChildren
+  '/db/$dbId/extensions': typeof DbDbIdExtensionsRoute
   '/db/$dbId/info': typeof DbDbIdInfoRoute
   '/db/$dbId/logs': typeof DbDbIdLogsRoute
   '/db/$dbId/settings': typeof DbDbIdSettingsRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/db/$dbId': typeof DbDbIdRouteWithChildren
+  '/db/$dbId/extensions': typeof DbDbIdExtensionsRoute
   '/db/$dbId/info': typeof DbDbIdInfoRoute
   '/db/$dbId/logs': typeof DbDbIdLogsRoute
   '/db/$dbId/settings': typeof DbDbIdSettingsRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/db/$dbId': typeof DbDbIdRouteWithChildren
+  '/db/$dbId/extensions': typeof DbDbIdExtensionsRoute
   '/db/$dbId/info': typeof DbDbIdInfoRoute
   '/db/$dbId/logs': typeof DbDbIdLogsRoute
   '/db/$dbId/settings': typeof DbDbIdSettingsRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/setup'
     | '/db/$dbId'
+    | '/db/$dbId/extensions'
     | '/db/$dbId/info'
     | '/db/$dbId/logs'
     | '/db/$dbId/settings'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/setup'
     | '/db/$dbId'
+    | '/db/$dbId/extensions'
     | '/db/$dbId/info'
     | '/db/$dbId/logs'
     | '/db/$dbId/settings'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/setup'
     | '/db/$dbId'
+    | '/db/$dbId/extensions'
     | '/db/$dbId/info'
     | '/db/$dbId/logs'
     | '/db/$dbId/settings'
@@ -208,16 +220,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DbDbIdInfoRouteImport
       parentRoute: typeof DbDbIdRoute
     }
+    '/db/$dbId/extensions': {
+      id: '/db/$dbId/extensions'
+      path: '/extensions'
+      fullPath: '/db/$dbId/extensions'
+      preLoaderRoute: typeof DbDbIdExtensionsRouteImport
+      parentRoute: typeof DbDbIdRoute
+    }
   }
 }
 
 interface DbDbIdRouteChildren {
+  DbDbIdExtensionsRoute: typeof DbDbIdExtensionsRoute
   DbDbIdInfoRoute: typeof DbDbIdInfoRoute
   DbDbIdLogsRoute: typeof DbDbIdLogsRoute
   DbDbIdSettingsRoute: typeof DbDbIdSettingsRoute
 }
 
 const DbDbIdRouteChildren: DbDbIdRouteChildren = {
+  DbDbIdExtensionsRoute: DbDbIdExtensionsRoute,
   DbDbIdInfoRoute: DbDbIdInfoRoute,
   DbDbIdLogsRoute: DbDbIdLogsRoute,
   DbDbIdSettingsRoute: DbDbIdSettingsRoute,
