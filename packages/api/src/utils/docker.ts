@@ -66,22 +66,33 @@ function getEnvironmentVars(db: DatabaseInstance): string[] {
   }
 }
 
-// Create and start a database container
+function getDataVolumePath(type: DatabaseInstance["type"]): string {
+  switch (type) {
+    case "postgresql":
+      return "/var/lib/postgresql/data";
+    case "mysql":
+      return "/var/lib/mysql";
+    case "mongodb":
+      return "/data/db";
+    default:
+      throw new Error(`Unsupported database type: ${type}`);
+  }
+}
+
 export async function createContainer(db: DatabaseInstance): Promise<string> {
   try {
     await ensureNetwork();
 
     const image = getDockerImage(db.type);
     const containerName = `debby-${db.type}-${db.id}`;
+    const volumeName = `debby-data-${db.id}`;
 
-    // Pull image if not exists
     try {
       await docker.pull(image);
     } catch (error) {
       console.warn(`Image ${image} might already exist or pull failed:`, error);
     }
 
-    // Create container
     const container = await docker.createContainer({
       Image: image,
       name: containerName,
@@ -96,6 +107,7 @@ export async function createContainer(db: DatabaseInstance): Promise<string> {
         RestartPolicy: {
           Name: "unless-stopped",
         },
+        Binds: [`${volumeName}:${getDataVolumePath(db.type)}`],
       },
       Labels: {
         "debby.managed": "true",
@@ -114,7 +126,6 @@ export async function createContainer(db: DatabaseInstance): Promise<string> {
   }
 }
 
-// Get default internal port for database type
 function getDefaultPort(type: DatabaseInstance["type"]): number {
   switch (type) {
     case "postgresql":
@@ -128,17 +139,15 @@ function getDefaultPort(type: DatabaseInstance["type"]): number {
   }
 }
 
-// Find an available port for the database
 export async function findAvailablePort(
   type: DatabaseInstance["type"],
 ): Promise<number> {
   const defaultPort = getDefaultPort(type);
-  // Try to get the default port first, otherwise find any available port
+
   const port = await getPort({ port: defaultPort });
   return port;
 }
 
-// Start an existing container
 export async function startContainer(containerId: string): Promise<void> {
   try {
     const container = docker.getContainer(containerId);
@@ -149,7 +158,6 @@ export async function startContainer(containerId: string): Promise<void> {
   }
 }
 
-// Stop a running container
 export async function stopContainer(containerId: string): Promise<void> {
   try {
     const container = docker.getContainer(containerId);
@@ -160,17 +168,13 @@ export async function stopContainer(containerId: string): Promise<void> {
   }
 }
 
-// Remove a container
 export async function removeContainer(containerId: string): Promise<void> {
   try {
     const container = docker.getContainer(containerId);
 
-    // Stop if running
     try {
       await container.stop();
-    } catch (error) {
-      // Container might already be stopped
-    }
+    } catch (error) {}
 
     await container.remove();
   } catch (error) {
@@ -179,7 +183,24 @@ export async function removeContainer(containerId: string): Promise<void> {
   }
 }
 
-// Get container status and info
+export async function removeVolume(databaseId: string): Promise<void> {
+  try {
+    const volumeName = `debby-data-${databaseId}`;
+    const volume = docker.getVolume(volumeName);
+
+    try {
+      await volume.remove();
+      console.log(`Volume ${volumeName} removed successfully`);
+    } catch (error: any) {
+      if (error?.statusCode !== 404) {
+        console.error(`Error removing volume ${volumeName}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error("Error in removeVolume:", error);
+  }
+}
+
 export async function getContainerStatus(
   containerId: string,
 ): Promise<"running" | "stopped" | "created" | "error"> {
@@ -200,7 +221,6 @@ export async function getContainerStatus(
   }
 }
 
-// Get detailed container info including ports
 export async function getContainerInfo(containerId: string): Promise<{
   status: "running" | "stopped" | "created" | "error";
   port?: number;
@@ -218,11 +238,9 @@ export async function getContainerInfo(containerId: string): Promise<{
       status = "stopped";
     }
 
-    // Extract host port from port bindings
     let port: number | undefined;
     const ports = info.NetworkSettings?.Ports;
     if (ports) {
-      // Get the first exposed port mapping
       const portKeys = Object.keys(ports);
       if (portKeys.length > 0 && portKeys[0]) {
         const bindings = ports[portKeys[0]];
@@ -239,7 +257,6 @@ export async function getContainerInfo(containerId: string): Promise<{
   }
 }
 
-// List all Debby-managed containers
 export async function listManagedContainers(): Promise<
   Array<{
     id: string;
@@ -265,7 +282,6 @@ export async function listManagedContainers(): Promise<
   }
 }
 
-// Sync database status with Docker - checks actual container state
 export async function syncDatabaseWithDocker(containerId?: string): Promise<{
   status: "running" | "stopped" | "created" | "error";
   port?: number;
@@ -277,7 +293,6 @@ export async function syncDatabaseWithDocker(containerId?: string): Promise<{
   return await getContainerInfo(containerId);
 }
 
-// Get container logs
 export async function getContainerLogs(
   containerId: string,
   options: {
@@ -299,6 +314,141 @@ export async function getContainerLogs(
     return logs.toString("utf-8");
   } catch (error) {
     console.error("Error getting container logs:", error);
+    throw error;
+  }
+}
+
+export async function listPostgresExtensions(
+  containerId: string,
+  username: string,
+  password: string,
+  dbName: string,
+): Promise<Array<{ name: string; enabled: boolean; version: string | null }>> {
+  try {
+    const query = `
+      SELECT 
+        ae.name as name,
+        e.extversion as version,
+        CASE WHEN e.extname IS NOT NULL THEN 't' ELSE 'f' END as enabled
+      FROM pg_available_extensions ae
+      LEFT JOIN pg_extension e ON ae.name = e.extname
+      ORDER BY ae.name;
+    `;
+
+    const cmd = [
+      "psql",
+      `-U${username}`,
+      `-d${dbName}`,
+      "-t", // Tuples only
+      "-A", // Unaligned output
+      "-F|", // Field separator
+      "-c",
+      query,
+    ];
+
+    const container = docker.getContainer(containerId);
+    const exec = await container.exec({
+      Cmd: cmd,
+      AttachStdout: true,
+      AttachStderr: true,
+      Env: [`PGPASSWORD=${password}`],
+    });
+
+    const stream = await exec.start({ Detach: false });
+
+    return new Promise((resolve, reject) => {
+      let output = "";
+
+      stream.on("data", (chunk: Buffer) => {
+        const data = chunk.slice(8).toString("utf-8");
+        output += data;
+      });
+
+      stream.on("end", () => {
+        const lines = output
+          .trim()
+          .split("\n")
+          .filter((line) => line.length > 0);
+        const extensions = lines
+          .map((line) => {
+            const [name, version, enabled] = line.split("|");
+            return {
+              name: (name || "").trim(),
+              enabled: enabled?.trim() === "t",
+              version: version?.trim() || null,
+            };
+          })
+          .filter((ext) => ext.name.length > 0);
+
+        resolve(extensions);
+      });
+
+      stream.on("error", reject);
+    });
+  } catch (error) {
+    console.error("Error listing PostgreSQL extensions:", error);
+    throw error;
+  }
+}
+
+export async function enablePostgresExtension(
+  containerId: string,
+  username: string,
+  password: string,
+  dbName: string,
+  extensionName: string,
+): Promise<void> {
+  try {
+    const cmd = [
+      "psql",
+      `-U${username}`,
+      `-d${dbName}`,
+      "-c",
+      `CREATE EXTENSION IF NOT EXISTS "${extensionName}";`,
+    ];
+
+    const container = docker.getContainer(containerId);
+    const exec = await container.exec({
+      Cmd: cmd,
+      AttachStdout: true,
+      AttachStderr: true,
+      Env: [`PGPASSWORD=${password}`],
+    });
+
+    await exec.start({ Detach: false });
+  } catch (error) {
+    console.error(`Error enabling extension ${extensionName}:`, error);
+    throw error;
+  }
+}
+
+export async function disablePostgresExtension(
+  containerId: string,
+  username: string,
+  password: string,
+  dbName: string,
+  extensionName: string,
+): Promise<void> {
+  try {
+    const cmd = [
+      "psql",
+      `-U${username}`,
+      `-d${dbName}`,
+      "-c",
+      `DROP EXTENSION IF EXISTS "${extensionName}" CASCADE;`,
+    ];
+
+    const container = docker.getContainer(containerId);
+    const exec = await container.exec({
+      Cmd: cmd,
+      AttachStdout: true,
+      AttachStderr: true,
+      Env: [`PGPASSWORD=${password}`],
+    });
+
+    await exec.start({ Detach: false });
+  } catch (error) {
+    console.error(`Error disabling extension ${extensionName}:`, error);
     throw error;
   }
 }
