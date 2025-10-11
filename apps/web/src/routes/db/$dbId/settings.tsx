@@ -2,11 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { trpc } from "../../../utils/trpc";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
-import { Save, AlertTriangle } from "lucide-react";
+import { Save, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/db/$dbId/settings")({
@@ -18,7 +24,7 @@ function SettingsPage() {
   const trpcUtils = trpc();
 
   const { data: database } = useQuery(
-    trpcUtils.databases.getById.queryOptions({ id: dbId })
+    trpcUtils.databases.getById.queryOptions({ id: dbId }),
   );
 
   const [formData, setFormData] = useState({
@@ -40,23 +46,29 @@ function SettingsPage() {
 
   const updateMutation = useMutation(
     trpcUtils.databases.update.mutationOptions({
-      onSuccess: () => {
-        toast.success("Database settings updated successfully");
+      onSuccess: (data) => {
+        toast.success(data.message || "Database settings updated successfully");
+        // Clear password field after successful update
+        setFormData((prev) => ({ ...prev, password: "" }));
       },
       onError: (error) => {
         toast.error(error.message);
       },
-    })
+    }),
   );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const updates: any = {
       id: dbId,
     };
 
-    if (formData.name !== database?.name) {
+    const credentialsChanged =
+      formData.username !== database?.username || formData.password !== "";
+
+    // Only allow name changes if container doesn't exist
+    if (formData.name !== database?.name && !database?.containerId) {
       updates.name = formData.name;
     }
 
@@ -66,6 +78,17 @@ function SettingsPage() {
 
     if (formData.password) {
       updates.password = formData.password;
+    }
+
+    // Show warning if credentials are being changed
+    if (credentialsChanged && database?.containerId) {
+      if (
+        !confirm(
+          "Changing credentials will restart the container. Your data will be preserved, but there will be a brief downtime. Continue?",
+        )
+      ) {
+        return;
+      }
     }
 
     updateMutation.mutate(updates);
@@ -83,16 +106,33 @@ function SettingsPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {database?.containerId && (
+              <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800 dark:text-blue-300">
+                  <strong>Note:</strong> Changing username or password will
+                  recreate the container with new credentials. Your data will be
+                  preserved using Docker volumes, but there will be a brief
+                  restart.
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="name">Database Name</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="my-database"
+                disabled={!!database?.containerId}
               />
               <p className="text-sm text-muted-foreground">
-                A friendly name to identify your database
+                {database?.containerId
+                  ? "Database name cannot be changed after container is created"
+                  : "A friendly name to identify your database"}
               </p>
             </div>
 
@@ -101,7 +141,9 @@ function SettingsPage() {
               <Input
                 id="username"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 placeholder="admin"
               />
               <p className="text-sm text-muted-foreground">
@@ -115,7 +157,9 @@ function SettingsPage() {
                 id="password"
                 type="password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 placeholder="Leave empty to keep current password"
               />
               <p className="text-sm text-muted-foreground">
@@ -150,7 +194,10 @@ function SettingsPage() {
                 Stop and start the container to apply changes
               </div>
             </div>
-            <Button variant="outline" className="border-destructive text-destructive">
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive"
+            >
               Restart
             </Button>
           </div>
@@ -162,7 +209,10 @@ function SettingsPage() {
                 Remove all data and reinitialize the database
               </div>
             </div>
-            <Button variant="outline" className="border-destructive text-destructive">
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive"
+            >
               Reset
             </Button>
           </div>
