@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { ArrowLeft, Info, ScrollText, Settings } from "lucide-react";
+import { ArrowLeft, Info, ScrollText, Settings, Puzzle } from "lucide-react";
 import { Skeleton } from "../../components/ui/skeleton";
 
 export const Route = createFileRoute("/db/$dbId")({
@@ -76,6 +76,9 @@ function DatabaseDetailsLayout() {
   const tabs = [
     { label: "Info", path: "/db/$dbId/info", icon: Info },
     { label: "Logs", path: "/db/$dbId/logs", icon: ScrollText },
+    ...(database.type === "postgresql"
+      ? [{ label: "Extensions", path: "/db/$dbId/extensions", icon: Puzzle }]
+      : []),
     { label: "Settings", path: "/db/$dbId/settings", icon: Settings },
   ];
 
