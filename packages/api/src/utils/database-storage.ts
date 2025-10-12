@@ -1,134 +1,148 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import type { DatabaseInstance, DatabaseCreateInput, DatabaseUpdateInput } from "../types";
+import type {
+  DatabaseInstance,
+  DatabaseCreateInput,
+  DatabaseUpdateInput,
+} from "../types";
 import { randomUUID } from "crypto";
+import { getDatabase } from "./database.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "../../../data");
-const DATABASES_FILE = path.join(DATA_DIR, "databases.json");
-
-// Ensure data directory exists
-function ensureDataDir() {
-	if (!fs.existsSync(DATA_DIR)) {
-		fs.mkdirSync(DATA_DIR, { recursive: true });
-	}
+function rowToDatabase(row: any): DatabaseInstance {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    port: row.port,
+    username: row.username,
+    password: row.password,
+    containerId: row.container_id,
+    status: row.status,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
 }
 
-// Read databases from file
-function readDatabases(): DatabaseInstance[] {
-	ensureDataDir();
-	
-	if (!fs.existsSync(DATABASES_FILE)) {
-		return [];
-	}
-
-	const data = fs.readFileSync(DATABASES_FILE, "utf-8");
-	return JSON.parse(data);
-}
-
-// Write databases to file
-function writeDatabases(databases: DatabaseInstance[]): void {
-	ensureDataDir();
-	fs.writeFileSync(DATABASES_FILE, JSON.stringify(databases, null, 2));
-}
-
-// Get all databases
 export function getAllDatabases(): DatabaseInstance[] {
-	return readDatabases();
+  const db = getDatabase();
+  const stmt = db.prepare("SELECT * FROM databases");
+  const rows = stmt.all();
+  return rows.map(rowToDatabase);
 }
 
-// Get database by ID
 export function getDatabaseById(id: string): DatabaseInstance | null {
-	const databases = readDatabases();
-	return databases.find(db => db.id === id) || null;
+  const db = getDatabase();
+  const stmt = db.prepare("SELECT * FROM databases WHERE id = ?");
+  const row = stmt.get(id);
+  return row ? rowToDatabase(row) : null;
 }
 
-// Create new database
-export function createDatabase(input: DatabaseCreateInput & { port: number }): DatabaseInstance {
-	const databases = readDatabases();
-	
-	// Check if port is already in use
-	const portInUse = databases.some(db => db.port === input.port);
-	if (portInUse) {
-		throw new Error(`Port ${input.port} is already in use`);
-	}
+export function createDatabase(
+  input: DatabaseCreateInput & { port: number },
+): DatabaseInstance {
+  const db = getDatabase();
 
-	const newDatabase: DatabaseInstance = {
-		id: randomUUID(),
-		name: input.name,
-		type: input.type,
-		port: input.port,
-		username: input.username,
-		password: input.password,
-		status: "created",
-		createdAt: new Date(),
-		updatedAt: new Date(),
-	};
+  const portCheck = db
+    .prepare("SELECT id FROM databases WHERE port = ?")
+    .get(input.port);
+  if (portCheck) {
+    throw new Error(`Port ${input.port} is already in use`);
+  }
 
-	databases.push(newDatabase);
-	writeDatabases(databases);
-	
-	return newDatabase;
+  const id = randomUUID();
+  const now = new Date().toISOString();
+
+  const stmt = db.prepare(`
+		INSERT INTO databases (id, name, type, port, username, password, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`);
+
+  stmt.run(
+    id,
+    input.name,
+    input.type,
+    input.port,
+    input.username,
+    input.password,
+    "created",
+    now,
+    now,
+  );
+
+  return getDatabaseById(id)!;
 }
 
-// Update database
 export function updateDatabase(input: DatabaseUpdateInput): DatabaseInstance {
-	const databases = readDatabases();
-	const index = databases.findIndex(db => db.id === input.id);
+  const db = getDatabase();
+  const current = getDatabaseById(input.id);
 
-	if (index === -1) {
-		throw new Error("Database not found");
-	}
+  if (!current) {
+    throw new Error("Database not found");
+  }
 
-	const current = databases[index]!;
-	const updated: DatabaseInstance = {
-		...current,
-		...(input.name && { name: input.name }),
-		...(input.port && { port: input.port }),
-		...(input.username && { username: input.username }),
-		...(input.password && { password: input.password }),
-		updatedAt: new Date(),
-	};
+  const updates: string[] = [];
+  const values: any[] = [];
 
-	databases[index] = updated;
-	writeDatabases(databases);
-	
-	return updated;
+  if (input.name !== undefined) {
+    updates.push("name = ?");
+    values.push(input.name);
+  }
+  if (input.port !== undefined) {
+    updates.push("port = ?");
+    values.push(input.port);
+  }
+  if (input.username !== undefined) {
+    updates.push("username = ?");
+    values.push(input.username);
+  }
+  if (input.password !== undefined) {
+    updates.push("password = ?");
+    values.push(input.password);
+  }
+
+  updates.push("updated_at = ?");
+  values.push(new Date().toISOString());
+  values.push(input.id);
+
+  const stmt = db.prepare(
+    `UPDATE databases SET ${updates.join(", ")} WHERE id = ?`,
+  );
+  stmt.run(...values);
+
+  return getDatabaseById(input.id)!;
 }
 
-// Delete database
 export function deleteDatabase(id: string): boolean {
-	const databases = readDatabases();
-	const filtered = databases.filter(db => db.id !== id);
-	
-	if (filtered.length === databases.length) {
-		return false;
-	}
-
-	writeDatabases(filtered);
-	return true;
+  const db = getDatabase();
+  const stmt = db.prepare("DELETE FROM databases WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
 }
 
-// Update database status
-export function updateDatabaseStatus(id: string, status: DatabaseInstance["status"], containerId?: string): DatabaseInstance {
-	const databases = readDatabases();
-	const index = databases.findIndex(db => db.id === id);
+export function updateDatabaseStatus(
+  id: string,
+  status: DatabaseInstance["status"],
+  containerId?: string,
+): DatabaseInstance {
+  const db = getDatabase();
 
-	if (index === -1) {
-		throw new Error("Database not found");
-	}
+  const existing = getDatabaseById(id);
+  if (!existing) {
+    throw new Error("Database not found");
+  }
 
-	const db = databases[index]!;
-	db.status = status;
-	if (containerId !== undefined) {
-		db.containerId = containerId;
-	}
-	db.updatedAt = new Date();
+  const updates = ["status = ?", "updated_at = ?"];
+  const values: any[] = [status, new Date().toISOString()];
 
-	writeDatabases(databases);
-	
-	return db;
+  if (containerId !== undefined) {
+    updates.push("container_id = ?");
+    values.push(containerId);
+  }
+
+  values.push(id);
+
+  const stmt = db.prepare(
+    `UPDATE databases SET ${updates.join(", ")} WHERE id = ?`,
+  );
+  stmt.run(...values);
+
+  return getDatabaseById(id)!;
 }

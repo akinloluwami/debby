@@ -4,6 +4,9 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+# Install build dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++
+
 # Copy all package files from monorepo
 COPY package*.json ./
 COPY turbo.json ./
@@ -13,6 +16,9 @@ COPY packages/api/package*.json ./packages/api/
 
 # Install all dependencies including optional ones properly
 RUN npm ci --legacy-peer-deps
+
+# Rebuild better-sqlite3 for Alpine Linux
+RUN npm rebuild better-sqlite3
 
 # Build the application
 FROM base AS builder
@@ -29,7 +35,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Install tsx for running TypeScript directly
+# Install build dependencies and tsx
+RUN apk add --no-cache python3 make g++
 RUN npm install -g tsx
 
 # Create data directory
@@ -46,6 +53,9 @@ COPY --from=builder /app/apps/server/tsconfig.json ./apps/server/
 COPY --from=builder /app/packages/api/package*.json ./packages/api/
 COPY --from=builder /app/packages/api/tsconfig.json ./packages/api/
 COPY --from=builder /app/tsconfig.base.json ./
+
+# Rebuild better-sqlite3 for the final runtime environment
+RUN npm rebuild better-sqlite3
 
 EXPOSE 3000
 

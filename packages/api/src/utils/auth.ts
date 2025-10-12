@@ -1,66 +1,54 @@
 import bcrypt from "bcrypt";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import { getDatabase } from "./database.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "../../../data");
-const PASSWORD_FILE = path.join(DATA_DIR, "master-password.json");
 const SALT_ROUNDS = 10;
 
-interface MasterPasswordData {
-	hash: string;
-	createdAt: string;
-}
-
-// Ensure data directory exists
-export function ensureDataDir() {
-	if (!fs.existsSync(DATA_DIR)) {
-		fs.mkdirSync(DATA_DIR, { recursive: true });
-	}
-}
-
-// Check if master password is configured
 export function isMasterPasswordConfigured(): boolean {
-	ensureDataDir();
-	return fs.existsSync(PASSWORD_FILE);
+  const db = getDatabase();
+  const stmt = db.prepare("SELECT id FROM master_password WHERE id = 1");
+  const row = stmt.get();
+  return row !== undefined;
 }
 
-// Hash and store master password
 export async function setMasterPassword(password: string): Promise<void> {
-	ensureDataDir();
-	
-	if (isMasterPasswordConfigured()) {
-		throw new Error("Master password is already configured");
-	}
+  if (isMasterPasswordConfigured()) {
+    throw new Error("Master password is already configured");
+  }
 
-	const hash = await bcrypt.hash(password, SALT_ROUNDS);
-	const data: MasterPasswordData = {
-		hash,
-		createdAt: new Date().toISOString(),
-	};
+  const hash = await bcrypt.hash(password, SALT_ROUNDS);
+  const createdAt = new Date().toISOString();
 
-	fs.writeFileSync(PASSWORD_FILE, JSON.stringify(data, null, 2));
+  const db = getDatabase();
+  const stmt = db.prepare(
+    "INSERT INTO master_password (id, hash, created_at) VALUES (1, ?, ?)",
+  );
+  stmt.run(hash, createdAt);
 }
 
-// Verify master password
 export async function verifyMasterPassword(password: string): Promise<boolean> {
-	if (!isMasterPasswordConfigured()) {
-		return false;
-	}
+  if (!isMasterPasswordConfigured()) {
+    return false;
+  }
 
-	const data = JSON.parse(fs.readFileSync(PASSWORD_FILE, "utf-8")) as MasterPasswordData;
-	return await bcrypt.compare(password, data.hash);
+  const db = getDatabase();
+  const stmt = db.prepare("SELECT hash FROM master_password WHERE id = 1");
+  const row = stmt.get() as { hash: string } | undefined;
+
+  if (!row) {
+    return false;
+  }
+
+  return await bcrypt.compare(password, row.hash);
 }
 
-// Get master password hash (for checking if configured)
 export function getMasterPasswordHash(): string | null {
-	if (!isMasterPasswordConfigured()) {
-		return null;
-	}
+  if (!isMasterPasswordConfigured()) {
+    return null;
+  }
 
-	const data = JSON.parse(fs.readFileSync(PASSWORD_FILE, "utf-8")) as MasterPasswordData;
-	return data.hash;
+  const db = getDatabase();
+  const stmt = db.prepare("SELECT hash FROM master_password WHERE id = 1");
+  const row = stmt.get() as { hash: string } | undefined;
+
+  return row ? row.hash : null;
 }

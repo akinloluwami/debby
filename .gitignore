@@ -12,6 +12,12 @@ node_modules/
 data/
 *.json
 
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+*.backup
+
 # Environment files
 .env
 .env.local
