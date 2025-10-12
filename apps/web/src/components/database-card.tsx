@@ -102,13 +102,10 @@ export function DatabaseCard({ database, onDelete }: DatabaseCardProps) {
       error: "bg-red-500",
     }[database.status] || "bg-gray-500";
 
-  const getLogoPath = () => {
-    const logoMap = {
-      postgresql: "/src/public/postgresql.svg",
-      mysql: "/src/public/mysql.svg",
-      mongodb: "/src/public/mongodb.svg",
-    };
-    return logoMap[database.type as keyof typeof logoMap] || "";
+  const logoMap: { [key: string]: string } = {
+    postgresql: "/postgresql.svg",
+    mysql: "/mysql.svg",
+    mongodb: "/mongodb.svg",
   };
 
   return (
@@ -118,7 +115,7 @@ export function DatabaseCard({ database, onDelete }: DatabaseCardProps) {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <img
-                src={getLogoPath()}
+                src={logoMap[database.type]}
                 alt={`${database.type} logo`}
                 className="h-8 w-8 object-contain"
               />
