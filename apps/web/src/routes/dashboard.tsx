@@ -107,7 +107,7 @@ function DashboardPage() {
                   <DialogHeader>
                     <DialogTitle>Create New Database</DialogTitle>
                     <DialogDescription>
-                      Set up a new database instance
+                      Spin up a new database instance
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -125,21 +125,64 @@ function DashboardPage() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="type">Type</Label>
-                      <select
-                        id="type"
-                        value={formData.type}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            type: e.target.value as any,
-                          })
-                        }
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <option value="postgresql">PostgreSQL</option>
-                        <option value="mysql">MySQL</option>
-                        <option value="mongodb">MongoDB</option>
-                      </select>
+                      <div className="grid grid-cols-3 gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({ ...formData, type: "postgresql" })
+                          }
+                          className={`flex flex-col items-center gap-2 p-4 border-2 rounded-lg transition-all hover:border-primary ${
+                            formData.type === "postgresql"
+                              ? "border-primary bg-primary/5"
+                              : "border-input"
+                          }`}
+                        >
+                          <img
+                            src="/postgresql.svg"
+                            alt="PostgreSQL"
+                            className="h-10 w-10 object-contain"
+                          />
+                          <span className="text-sm font-medium">
+                            PostgreSQL
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({ ...formData, type: "mysql" })
+                          }
+                          className={`flex flex-col items-center gap-2 p-4 border-2 rounded-lg transition-all hover:border-primary ${
+                            formData.type === "mysql"
+                              ? "border-primary bg-primary/5"
+                              : "border-input"
+                          }`}
+                        >
+                          <img
+                            src="/mysql.svg"
+                            alt="MySQL"
+                            className="h-10 w-10 object-contain"
+                          />
+                          <span className="text-sm font-medium">MySQL</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({ ...formData, type: "mongodb" })
+                          }
+                          className={`flex flex-col items-center gap-2 p-4 border-2 rounded-lg transition-all hover:border-primary ${
+                            formData.type === "mongodb"
+                              ? "border-primary bg-primary/5"
+                              : "border-input"
+                          }`}
+                        >
+                          <img
+                            src="/mongodb.svg"
+                            alt="MongoDB"
+                            className="h-10 w-10 object-contain"
+                          />
+                          <span className="text-sm font-medium">MongoDB</span>
+                        </button>
+                      </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="username">Username</Label>
