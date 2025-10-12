@@ -4,10 +4,15 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+# Copy all package files from monorepo
 COPY package*.json ./
+COPY turbo.json ./
+COPY apps/server/package*.json ./apps/server/
 COPY apps/web/package*.json ./apps/web/
+COPY packages/api/package*.json ./packages/api/
 
-RUN npm ci
+# Install all dependencies including optional ones properly
+RUN npm ci --legacy-peer-deps
 
 # Build the application
 FROM base AS builder
