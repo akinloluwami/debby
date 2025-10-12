@@ -34,7 +34,7 @@ function DatabaseDetailsLayout() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div className="min-h-screen">
         <div className="container mx-auto p-6">
           <div className="flex items-center gap-4 mb-6">
             <Skeleton className="h-10 w-10" />
@@ -92,7 +92,7 @@ function DatabaseDetailsLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen">
       <div className="container mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -159,8 +159,6 @@ function DatabaseDetailsLayout() {
             })}
           </div>
         </div>
-
-        {/* Tab Content */}
         <Outlet />
       </div>
     </div>
