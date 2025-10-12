@@ -83,12 +83,12 @@ function DatabaseDetailsLayout() {
   ];
 
   const getLogoPath = () => {
-    const logoMap = {
-      postgresql: "/src/public/postgresql.svg",
-      mysql: "/src/public/mysql.svg",
-      mongodb: "/src/public/mongodb.svg",
+    const logoMap: { [key: string]: string } = {
+      postgresql: "/postgresql.svg",
+      mysql: "/mysql.svg",
+      mongodb: "/mongodb.svg",
     };
-    return logoMap[database.type as keyof typeof logoMap] || "";
+    return logoMap[database.type];
   };
 
   return (
