@@ -5,7 +5,15 @@ import { useAuthStore } from "../stores/auth";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
 import { DatabaseCard } from "../components/database-card";
 import { Plus, LogOut } from "lucide-react";
 import { toast } from "sonner";
@@ -21,7 +29,7 @@ function DashboardPage() {
   const [open, setOpen] = useState(false);
   const trpcUtils = trpc();
   const queryClient = useQueryClient();
-  
+
   const [formData, setFormData] = useState({
     name: "",
     type: "postgresql" as "postgresql" | "mysql" | "mongodb",
@@ -29,14 +37,17 @@ function DashboardPage() {
     password: "",
   });
 
-  const { data: databases, refetch } = useQuery(trpcUtils.databases.list.queryOptions());
+  const { data: databases, refetch } = useQuery(
+    trpcUtils.databases.list.queryOptions(),
+  );
 
-  // Sync with Docker every 5 seconds to detect external changes
   useEffect(() => {
     const syncInterval = setInterval(async () => {
       try {
-        await queryClient.fetchQuery(trpcUtils.instances.syncAll.queryOptions());
-        // Refetch databases to get updated status
+        await queryClient.fetchQuery(
+          trpcUtils.instances.syncAll.queryOptions(),
+        );
+
         refetch();
       } catch (error) {
         console.error("Failed to sync with Docker:", error);
@@ -57,7 +68,7 @@ function DashboardPage() {
       onError: (error) => {
         toast.error(error.message);
       },
-    })
+    }),
   );
 
   const resetForm = () => {
@@ -80,13 +91,9 @@ function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen">
       <div className="container mx-auto p-6">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Debby Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Manage your self-hosted databases</p>
-          </div>
+        <div className="flex items-center justify-end mb-8">
           <div className="flex gap-2">
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
@@ -99,16 +106,36 @@ function DashboardPage() {
                 <form onSubmit={handleSubmit}>
                   <DialogHeader>
                     <DialogTitle>Create New Database</DialogTitle>
-                    <DialogDescription>Set up a new database instance with Docker</DialogDescription>
+                    <DialogDescription>
+                      Set up a new database instance
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label htmlFor="name">Name</Label>
-                      <Input id="name" placeholder="my-database" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                      <Input
+                        id="name"
+                        placeholder="my-database"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        required
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="type">Type</Label>
-                      <select id="type" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as any })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <select
+                        id="type"
+                        value={formData.type}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            type: e.target.value as any,
+                          })
+                        }
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
                         <option value="postgresql">PostgreSQL</option>
                         <option value="mysql">MySQL</option>
                         <option value="mongodb">MongoDB</option>
@@ -116,19 +143,41 @@ function DashboardPage() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="username">Username</Label>
-                      <Input id="username" placeholder="admin" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required />
+                      <Input
+                        id="username"
+                        placeholder="admin"
+                        value={formData.username}
+                        onChange={(e) =>
+                          setFormData({ ...formData, username: e.target.value })
+                        }
+                        required
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" placeholder="••••••••" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) =>
+                          setFormData({ ...formData, password: e.target.value })
+                        }
+                        required
+                      />
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      <p>Port will be automatically assigned from available ports.</p>
+                      <p>
+                        Port will be automatically assigned from available
+                        ports.
+                      </p>
                     </div>
                   </div>
                   <DialogFooter>
                     <Button type="submit" disabled={createMutation.isPending}>
-                      {createMutation.isPending ? "Creating..." : "Create Database"}
+                      {createMutation.isPending
+                        ? "Creating..."
+                        : "Create Database"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -143,7 +192,9 @@ function DashboardPage() {
 
         {databases && databases.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">No databases yet. Create your first database to get started!</p>
+            <p className="text-muted-foreground mb-4">
+              No databases yet. Create your first database to get started!
+            </p>
             <Button onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Database
@@ -152,7 +203,11 @@ function DashboardPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {databases?.map((db) => (
-              <DatabaseCard key={db.id} database={db} onDelete={() => refetch()} />
+              <DatabaseCard
+                key={db.id}
+                database={db}
+                onDelete={() => refetch()}
+              />
             ))}
           </div>
         )}
