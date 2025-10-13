@@ -69,7 +69,7 @@ new Elysia({ adapter: node() })
                 resultData?.message === "Logged out successfully"
               ) {
                 headers["Set-Cookie"] =
-                  "session=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                  "session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0";
               }
             }
           }
