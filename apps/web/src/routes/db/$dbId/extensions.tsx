@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { trpc } from "../../../utils/trpc";
-import { Button } from "../../../components/ui/button";
 import {
   Card,
   CardContent,
@@ -15,14 +14,18 @@ import { Badge } from "../../../components/ui/badge";
 import Loader from "../../../components/loader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Search, CheckCircle2, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/db/$dbId/extensions")({
   component: ExtensionsPage,
 });
 
-// Popular PostgreSQL extensions
 const POPULAR_EXTENSIONS = [
+  {
+    name: "vector",
+    description:
+      "Vector similarity search for AI/ML applications with embeddings",
+  },
   {
     name: "pg_stat_statements",
     description:
@@ -122,11 +125,7 @@ function ExtensionsPage() {
     trpcUtils.databases.getById.queryOptions({ id: dbId }),
   );
 
-  const {
-    data: extensions,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { data: extensions, isLoading } = useQuery({
     ...trpcUtils.instances.extensions.list.queryOptions({ id: dbId }),
     enabled: !!database && database.status === "running",
   });
@@ -134,7 +133,6 @@ function ExtensionsPage() {
   const toggleMutation = useMutation(
     trpcUtils.instances.extensions.toggle.mutationOptions({
       onSuccess: (data) => {
-        // Update the extensions data directly based on the mutation response
         if (extensions) {
           queryClient.setQueryData(
             [
@@ -211,7 +209,6 @@ function ExtensionsPage() {
         </p>
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -222,7 +219,6 @@ function ExtensionsPage() {
         />
       </div>
 
-      {/* Extensions List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader />

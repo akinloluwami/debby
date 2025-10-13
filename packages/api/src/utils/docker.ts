@@ -29,7 +29,7 @@ export async function ensureNetwork(): Promise<void> {
 function getDockerImage(type: DatabaseInstance["type"]): string {
   switch (type) {
     case "postgresql":
-      return "postgres:16-alpine";
+      return "pgvector/pgvector:pg16";
     case "mysql":
       return "mysql:8-oracle";
     case "mongodb":
