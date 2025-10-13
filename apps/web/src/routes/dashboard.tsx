@@ -99,6 +99,20 @@ function DashboardPage() {
     }),
   );
 
+  const logoutMutation = useMutation(
+    trpcUtils.setup.logout.mutationOptions({
+      onSuccess: () => {
+        logout();
+        setAuthenticated(false);
+        toast.success("Logged out successfully");
+        navigate({ to: "/login" });
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    }),
+  );
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -114,8 +128,7 @@ function DashboardPage() {
   };
 
   const handleLogout = () => {
-    logout();
-    navigate({ to: "/login" });
+    logoutMutation.mutate();
   };
 
   return (
@@ -254,7 +267,11 @@ function DashboardPage() {
                 </form>
               </DialogContent>
             </Dialog>
-            <Button variant="outline" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              disabled={logoutMutation.isPending}
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
