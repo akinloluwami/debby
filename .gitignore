@@ -48,3 +48,6 @@ coverage/
 # Debug
 .next/
 out/
+
+
+.github
