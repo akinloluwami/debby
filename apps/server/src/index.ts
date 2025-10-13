@@ -36,6 +36,7 @@ new Elysia({ adapter: node() })
     cors({
       origin: process.env.CORS_ORIGIN || "",
       methods: ["GET", "POST", "OPTIONS"],
+      credentials: true,
     }),
   )
   .all("/trpc/*", async (context) => {
@@ -44,6 +45,38 @@ new Elysia({ adapter: node() })
       router: appRouter,
       req: context.request,
       createContext: () => createContext({ context }),
+      responseMeta(opts) {
+        const { data } = opts;
+        const headers: Record<string, string> = {};
+
+        if (data) {
+          for (const result of data) {
+            if (
+              "result" in result &&
+              result.result &&
+              "data" in result.result
+            ) {
+              const resultData = result.result.data as any;
+
+              if (resultData?.sessionToken && resultData?.expiresAt) {
+                const expires = new Date(resultData.expiresAt);
+                headers["Set-Cookie"] =
+                  `session=${resultData.sessionToken}; Path=/; HttpOnly; SameSite=Strict; Expires=${expires.toUTCString()}`;
+              }
+
+              if (
+                resultData?.success &&
+                resultData?.message === "Logged out successfully"
+              ) {
+                headers["Set-Cookie"] =
+                  "session=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+              }
+            }
+          }
+        }
+
+        return { headers };
+      },
     });
     return res;
   })
