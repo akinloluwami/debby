@@ -32,7 +32,7 @@ function LoginPage() {
       onSuccess: () => {
         setAuthenticated(true);
         toast.success("Welcome back!");
-        navigate({ to: "/" });
+        navigate({ to: "/dashboard" });
       },
       onError: (error) => {
         setError(error.message);
