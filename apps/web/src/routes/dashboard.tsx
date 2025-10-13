@@ -25,10 +25,26 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const { logout, setAuthenticated } = useAuthStore();
   const [open, setOpen] = useState(false);
   const trpcUtils = trpc();
   const queryClient = useQueryClient();
+
+  const { data: sessionStatus, isLoading: isCheckingSession } = useQuery(
+    trpcUtils.setup.getSession.queryOptions(),
+  );
+
+  useEffect(() => {
+    if (!isCheckingSession && sessionStatus) {
+      if (!sessionStatus.isAuthenticated) {
+        setAuthenticated(false);
+        toast.error("Session expired. Please login again.");
+        navigate({ to: "/login" });
+      } else {
+        setAuthenticated(true);
+      }
+    }
+  }, [sessionStatus, isCheckingSession, navigate, setAuthenticated]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -37,9 +53,21 @@ function DashboardPage() {
     password: "",
   });
 
-  const { data: databases, refetch } = useQuery(
-    trpcUtils.databases.list.queryOptions(),
-  );
+  const {
+    data: databases,
+    refetch,
+    error: databaseError,
+  } = useQuery(trpcUtils.databases.list.queryOptions());
+
+  useEffect(() => {
+    if (
+      databaseError &&
+      (databaseError as any)?.data?.code === "UNAUTHORIZED"
+    ) {
+      setAuthenticated(false);
+      navigate({ to: "/login" });
+    }
+  }, [databaseError, navigate, setAuthenticated]);
 
   useEffect(() => {
     const syncInterval = setInterval(async () => {
