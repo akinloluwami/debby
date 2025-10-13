@@ -25,6 +25,7 @@ function SetupPage() {
   const { setConfigured, setAuthenticated } = useAuthStore();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [host, setHost] = useState("localhost");
   const [error, setError] = useState("");
   const trpcUtils = trpc();
 
@@ -34,7 +35,7 @@ function SetupPage() {
         setConfigured(true);
         setAuthenticated(true);
         toast.success("Master password set successfully!");
-        navigate({ to: "/" });
+        navigate({ to: "/dashboard" });
       },
       onError: (error) => {
         setError(error.message);
@@ -57,7 +58,12 @@ function SetupPage() {
       return;
     }
 
-    setPasswordMutation.mutate({ password });
+    if (!host.trim()) {
+      setError("Host is required");
+      return;
+    }
+
+    setPasswordMutation.mutate({ password, host });
   };
 
   return (
@@ -94,6 +100,21 @@ function SetupPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="host">Database Host</Label>
+              <Input
+                id="host"
+                type="text"
+                placeholder="localhost"
+                value={host}
+                onChange={(e) => setHost(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the hostname or IP address where your databases will be
+                accessible (e.g., localhost, 192.168.1.100, or your-domain.com)
+              </p>
             </div>
             {error && (
               <div className="text-sm text-red-500 dark:text-red-400">
