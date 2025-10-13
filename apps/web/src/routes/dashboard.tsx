@@ -25,7 +25,7 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const { logout, setAuthenticated } = useAuthStore();
+  const { logout, setAuthenticated, isAuthenticated } = useAuthStore();
   const [open, setOpen] = useState(false);
   const trpcUtils = trpc();
   const queryClient = useQueryClient();
@@ -36,15 +36,21 @@ function DashboardPage() {
 
   useEffect(() => {
     if (!isCheckingSession && sessionStatus) {
-      if (!sessionStatus.isAuthenticated) {
+      if (!sessionStatus.isAuthenticated && !isAuthenticated) {
         setAuthenticated(false);
         toast.error("Session expired. Please login again.");
         navigate({ to: "/login" });
-      } else {
+      } else if (sessionStatus.isAuthenticated) {
         setAuthenticated(true);
       }
     }
-  }, [sessionStatus, isCheckingSession, navigate, setAuthenticated]);
+  }, [
+    sessionStatus,
+    isCheckingSession,
+    navigate,
+    setAuthenticated,
+    isAuthenticated,
+  ]);
 
   const [formData, setFormData] = useState({
     name: "",
