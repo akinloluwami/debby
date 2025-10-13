@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../index";
+import { protectedProcedure, router } from "../index";
 import {
   getDatabaseById,
   updateDatabaseStatus,
@@ -19,7 +19,7 @@ import {
 } from "../utils/docker";
 
 export const instanceRouter = router({
-  start: publicProcedure
+  start: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -53,7 +53,6 @@ export const instanceRouter = router({
           containerId: database.containerId,
         };
       } catch (error) {
-        // Update status to error
         updateDatabaseStatus(input.id, "error");
         throw new Error(
           error instanceof Error ? error.message : "Failed to start container",
@@ -61,7 +60,7 @@ export const instanceRouter = router({
       }
     }),
 
-  stop: publicProcedure
+  stop: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -93,8 +92,7 @@ export const instanceRouter = router({
       }
     }),
 
-  // Get status of a database instance
-  status: publicProcedure
+  status: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -117,7 +115,6 @@ export const instanceRouter = router({
 
         const status = await getContainerStatus(database.containerId);
 
-        // Update database status if changed
         if (status !== database.status) {
           updateDatabaseStatus(database.id, status);
         }
@@ -134,8 +131,7 @@ export const instanceRouter = router({
       }
     }),
 
-  // List all managed containers
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     try {
       return await listManagedContainers();
     } catch (error) {
@@ -145,8 +141,7 @@ export const instanceRouter = router({
     }
   }),
 
-  // Sync all databases with Docker to get real-time status
-  syncAll: publicProcedure.query(async () => {
+  syncAll: protectedProcedure.query(async () => {
     try {
       const databases = getAllDatabases();
       const synced = await Promise.all(
@@ -158,7 +153,6 @@ export const instanceRouter = router({
           const dockerInfo = await syncDatabaseWithDocker(db.containerId);
 
           if (dockerInfo && dockerInfo.status !== db.status) {
-            // Update status if it changed
             updateDatabaseStatus(db.id, dockerInfo.status);
           }
 
@@ -178,8 +172,7 @@ export const instanceRouter = router({
     }
   }),
 
-  // Get container logs
-  logs: publicProcedure
+  logs: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -218,7 +211,7 @@ export const instanceRouter = router({
     }),
 
   extensions: router({
-    list: publicProcedure
+    list: protectedProcedure
       .input(
         z.object({
           id: z.string(),
@@ -277,7 +270,7 @@ export const instanceRouter = router({
         }
       }),
 
-    toggle: publicProcedure
+    toggle: protectedProcedure
       .input(
         z.object({
           id: z.string(),
