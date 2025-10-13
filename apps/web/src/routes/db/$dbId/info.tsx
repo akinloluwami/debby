@@ -1,10 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "../../../utils/trpc";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
-import { Play, Square, Trash2, Copy, Check, Server, Key, User, Hash, Calendar, Clock } from "lucide-react";
+import {
+  Play,
+  Square,
+  Trash2,
+  Copy,
+  Check,
+  Server,
+  Key,
+  User,
+  Hash,
+  Calendar,
+  Clock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -19,8 +37,14 @@ function InfoPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const { data: database, refetch } = useQuery(
-    trpcUtils.databases.getById.queryOptions({ id: dbId })
+    trpcUtils.databases.getById.queryOptions({ id: dbId }),
   );
+
+  const { data: settings } = useQuery(
+    trpcUtils.setup.getSettings.queryOptions(),
+  );
+
+  const host = settings?.host || "localhost";
 
   const startMutation = useMutation(
     trpcUtils.instances.start.mutationOptions({
@@ -31,7 +55,7 @@ function InfoPage() {
       onError: (error) => {
         toast.error(error.message);
       },
-    })
+    }),
   );
 
   const stopMutation = useMutation(
@@ -43,7 +67,7 @@ function InfoPage() {
       onError: (error) => {
         toast.error(error.message);
       },
-    })
+    }),
   );
 
   const deleteMutation = useMutation(
@@ -55,7 +79,7 @@ function InfoPage() {
       onError: (error) => {
         toast.error(error.message);
       },
-    })
+    }),
   );
 
   if (!database) return null;
@@ -76,7 +100,11 @@ function InfoPage() {
   };
 
   const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete "${database.name}"? This action cannot be undone.`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete "${database.name}"? This action cannot be undone.`,
+      )
+    ) {
       deleteMutation.mutate({ id: database.id });
     }
   };
@@ -84,11 +112,11 @@ function InfoPage() {
   const getConnectionString = () => {
     switch (database.type) {
       case "postgresql":
-        return `postgresql://${database.username}:${database.password}@localhost:${database.port}/${database.name}`;
+        return `postgresql://${database.username}:${database.password}@${host}:${database.port}/${database.name}`;
       case "mysql":
-        return `mysql://${database.username}:${database.password}@localhost:${database.port}/${database.name}`;
+        return `mysql://${database.username}:${database.password}@${host}:${database.port}/${database.name}`;
       case "mongodb":
-        return `mongodb://${database.username}:${database.password}@localhost:${database.port}/${database.name}`;
+        return `mongodb://${database.username}:${database.password}@${host}:${database.port}/${database.name}`;
       default:
         return "";
     }
@@ -97,11 +125,11 @@ function InfoPage() {
   const getCliCommand = () => {
     switch (database.type) {
       case "postgresql":
-        return `psql -h localhost -p ${database.port} -U ${database.username} -d ${database.name}`;
+        return `psql -h ${host} -p ${database.port} -U ${database.username} -d ${database.name}`;
       case "mysql":
-        return `mysql -h localhost -P ${database.port} -u ${database.username} -p`;
+        return `mysql -h ${host} -P ${database.port} -u ${database.username} -p`;
       case "mongodb":
-        return `mongosh mongodb://${database.username}:${database.password}@localhost:${database.port}`;
+        return `mongosh mongodb://${database.username}:${database.password}@${host}:${database.port}`;
       default:
         return "";
     }
@@ -126,10 +154,7 @@ function InfoPage() {
               {stopMutation.isPending ? "Stopping..." : "Stop"}
             </Button>
           ) : (
-            <Button
-              onClick={handleStart}
-              disabled={startMutation.isPending}
-            >
+            <Button onClick={handleStart} disabled={startMutation.isPending}>
               <Play className="h-4 w-4 mr-2" />
               {startMutation.isPending ? "Starting..." : "Start"}
             </Button>
@@ -149,7 +174,9 @@ function InfoPage() {
       <Card>
         <CardHeader>
           <CardTitle>Connection Details</CardTitle>
-          <CardDescription>Use these credentials to connect to your database</CardDescription>
+          <CardDescription>
+            Use these credentials to connect to your database
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -159,11 +186,11 @@ function InfoPage() {
                 Host
               </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <code className="text-sm">localhost</code>
+                <code className="text-sm">{host}</code>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleCopy("localhost", "host")}
+                  onClick={() => handleCopy(host, "host")}
                 >
                   {copiedField === "host" ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -240,13 +267,19 @@ function InfoPage() {
 
           <div className="pt-4 border-t">
             <div className="space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">Connection String</div>
+              <div className="text-sm font-medium text-muted-foreground">
+                Connection String
+              </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <code className="text-sm flex-1 truncate">{getConnectionString()}</code>
+                <code className="text-sm flex-1 truncate">
+                  {getConnectionString()}
+                </code>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleCopy(getConnectionString(), "connection")}
+                  onClick={() =>
+                    handleCopy(getConnectionString(), "connection")
+                  }
                 >
                   {copiedField === "connection" ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -258,9 +291,13 @@ function InfoPage() {
             </div>
 
             <div className="space-y-2 mt-4">
-              <div className="text-sm font-medium text-muted-foreground">CLI Command</div>
+              <div className="text-sm font-medium text-muted-foreground">
+                CLI Command
+              </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <code className="text-sm flex-1 truncate">{getCliCommand()}</code>
+                <code className="text-sm flex-1 truncate">
+                  {getCliCommand()}
+                </code>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -282,20 +319,29 @@ function InfoPage() {
       <Card>
         <CardHeader>
           <CardTitle>Database Information</CardTitle>
-          <CardDescription>General information about this database instance</CardDescription>
+          <CardDescription>
+            General information about this database instance
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <div className="text-sm font-medium text-muted-foreground">Database ID</div>
-              <div className="text-sm font-mono bg-muted p-2 rounded">{database.id}</div>
+              <div className="text-sm font-medium text-muted-foreground">
+                Database ID
+              </div>
+              <div className="text-sm font-mono bg-muted p-2 rounded">
+                {database.id}
+              </div>
             </div>
 
             <div className="space-y-1">
-              <div className="text-sm font-medium text-muted-foreground">Type</div>
+              <div className="text-sm font-medium text-muted-foreground">
+                Type
+              </div>
               <div>
                 <Badge variant="outline">
-                  {database.type.charAt(0).toUpperCase() + database.type.slice(1)}
+                  {database.type.charAt(0).toUpperCase() +
+                    database.type.slice(1)}
                 </Badge>
               </div>
             </div>
@@ -322,7 +368,9 @@ function InfoPage() {
 
             {database.containerId && (
               <div className="space-y-1 md:col-span-2">
-                <div className="text-sm font-medium text-muted-foreground">Container ID</div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  Container ID
+                </div>
                 <div className="text-sm font-mono bg-muted p-2 rounded truncate">
                   {database.containerId}
                 </div>
