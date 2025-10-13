@@ -6,7 +6,12 @@ import { toast } from "sonner";
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: (error) => {
+    onError: (error: any) => {
+      if (error?.data?.code === "UNAUTHORIZED") {
+        toast.error("Session expired. Please login again.");
+        return;
+      }
+
       toast.error(error.message, {
         action: {
           label: "retry",
