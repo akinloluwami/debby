@@ -11,26 +11,40 @@ export const Route = createFileRoute("/")({
 
 function HomeComponent() {
   const navigate = useNavigate();
-  const { isAuthenticated, isConfigured, setConfigured } = useAuthStore();
+  const { setConfigured, setAuthenticated } = useAuthStore();
   const trpcUtils = trpc();
-  
-  const { data: setupStatus, isLoading } = useQuery(
-    trpcUtils.setup.isConfigured.queryOptions()
+
+  const { data: setupStatus, isLoading: isLoadingSetup } = useQuery(
+    trpcUtils.setup.isConfigured.queryOptions(),
+  );
+
+  const { data: sessionStatus, isLoading: isLoadingSession } = useQuery(
+    trpcUtils.setup.getSession.queryOptions(),
   );
 
   useEffect(() => {
-    if (!isLoading && setupStatus) {
+    if (!isLoadingSetup && !isLoadingSession && setupStatus && sessionStatus) {
       setConfigured(setupStatus.isConfigured);
 
       if (!setupStatus.isConfigured) {
         navigate({ to: "/setup" });
-      } else if (!isAuthenticated) {
-        navigate({ to: "/login" });
-      } else {
+      } else if (sessionStatus.isAuthenticated) {
+        setAuthenticated(true);
         navigate({ to: "/dashboard" });
+      } else {
+        setAuthenticated(false);
+        navigate({ to: "/login" });
       }
     }
-  }, [setupStatus, isLoading, isAuthenticated, navigate, setConfigured]);
+  }, [
+    setupStatus,
+    sessionStatus,
+    isLoadingSetup,
+    isLoadingSession,
+    navigate,
+    setConfigured,
+    setAuthenticated,
+  ]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
