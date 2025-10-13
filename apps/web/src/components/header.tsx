@@ -1,4 +1,5 @@
 import { ModeToggle } from "./mode-toggle";
+import { SettingsModal } from "./settings-modal";
 import { Button } from "./ui/button";
 import { LogOut } from "lucide-react";
 import { useAuthStore } from "../stores/auth";
@@ -8,7 +9,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export default function Header() {
-  const { logout, setAuthenticated } = useAuthStore();
+  const { logout, setAuthenticated, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const trpcUtils = trpc();
 
@@ -35,15 +36,7 @@ export default function Header() {
       <div className="flex flex-row items-center justify-between px-2 py-1">
         <h2>Debby</h2>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            disabled={logoutMutation.isPending}
-            title="Logout"
-          >
-            <LogOut className="h-[1.2rem] w-[1.2rem]" />
-          </Button>
+          {isAuthenticated && <SettingsModal />}
           <ModeToggle />
         </div>
       </div>
