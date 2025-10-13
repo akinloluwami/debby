@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../index";
+import { protectedProcedure, router } from "../index";
 import {
   getAllDatabases,
   getDatabaseById,
@@ -18,13 +18,11 @@ import {
 } from "../utils/docker";
 
 export const databaseRouter = router({
-  // Get all databases
-  list: publicProcedure.query(() => {
+  list: protectedProcedure.query(() => {
     return getAllDatabases();
   }),
 
-  // Get database by ID
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -38,8 +36,7 @@ export const databaseRouter = router({
       return database;
     }),
 
-  // Create new database
-  create: publicProcedure
+  create: protectedProcedure
     .input(
       z.object({
         name: z.string().min(1, "Name is required"),
@@ -50,16 +47,13 @@ export const databaseRouter = router({
     )
     .mutation(async ({ input }) => {
       try {
-        // Find an available port automatically
         const port = await findAvailablePort(input.type);
 
-        // Create database record with auto-assigned port
         const database = createDatabase({
           ...input,
           port,
         });
 
-        // Create and start Docker container
         try {
           const containerId = await createContainer(database);
           updateDatabaseStatus(database.id, "running", containerId);
@@ -70,7 +64,6 @@ export const databaseRouter = router({
             status: "running" as const,
           };
         } catch (error) {
-          // Update status to error if container creation fails
           updateDatabaseStatus(database.id, "error");
           throw error;
         }
@@ -81,8 +74,7 @@ export const databaseRouter = router({
       }
     }),
 
-  // Update database
-  update: publicProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -160,8 +152,7 @@ export const databaseRouter = router({
       }
     }),
 
-  // Delete database
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -175,7 +166,6 @@ export const databaseRouter = router({
           throw new Error("Database not found");
         }
 
-        // Remove Docker container if exists
         if (database.containerId) {
           try {
             await removeContainer(database.containerId);
@@ -184,7 +174,6 @@ export const databaseRouter = router({
           }
         }
 
-        // Remove the volume to clean up data
         try {
           await removeVolume(input.id);
         } catch (error) {
