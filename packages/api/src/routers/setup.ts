@@ -7,6 +7,7 @@ import {
   createSession,
   deleteSession,
 } from "../utils/auth";
+import { setSetting, getAllSettings } from "../utils/database";
 
 export const setupRouter = router({
   isConfigured: publicProcedure.query(() => {
@@ -25,11 +26,13 @@ export const setupRouter = router({
     .input(
       z.object({
         password: z.string().min(8, "Password must be at least 8 characters"),
+        host: z.string().min(1, "Host is required").default("localhost"),
       }),
     )
     .mutation(async ({ input }) => {
       try {
         await setMasterPassword(input.password);
+        setSetting("host", input.host);
 
         const session = createSession();
         return {
@@ -77,4 +80,22 @@ export const setupRouter = router({
       message: "Logged out successfully",
     };
   }),
+
+  getSettings: protectedProcedure.query(() => {
+    return getAllSettings();
+  }),
+
+  updateHost: protectedProcedure
+    .input(
+      z.object({
+        host: z.string().min(1, "Host is required"),
+      }),
+    )
+    .mutation(({ input }) => {
+      setSetting("host", input.host);
+      return {
+        success: true,
+        message: "Host updated successfully",
+      };
+    }),
 });
