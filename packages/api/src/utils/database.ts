@@ -50,10 +50,15 @@ function initializeDatabase(): Database.Database {
 			created_at TEXT NOT NULL
 		);
 
+		CREATE TABLE IF NOT EXISTS settings (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		);
+
 		CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
 		CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 	`);
-
   return db;
 }
 
@@ -71,4 +76,29 @@ export function closeDatabase(): void {
     dbInstance.close();
     dbInstance = null;
   }
+}
+
+export function getSetting(key: string): string | null {
+  const db = getDatabase();
+  const stmt = db.prepare("SELECT value FROM settings WHERE key = ?");
+  const result = stmt.get(key) as { value: string } | undefined;
+  return result?.value || null;
+}
+
+export function setSetting(key: string, value: string): void {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+  const stmt = db.prepare(`
+    INSERT INTO settings (key, value, updated_at) 
+    VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = ?
+  `);
+  stmt.run(key, value, now, value, now);
+}
+
+export function getAllSettings(): Record<string, string> {
+  const db = getDatabase();
+  const stmt = db.prepare("SELECT key, value FROM settings");
+  const rows = stmt.all() as Array<{ key: string; value: string }>;
+  return Object.fromEntries(rows.map((row) => [row.key, row.value]));
 }
