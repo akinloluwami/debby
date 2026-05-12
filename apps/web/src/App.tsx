@@ -248,7 +248,21 @@ function DatabaseConnectionCard({
   );
 }
 
-const databaseTypes = [
+type DatabaseTypeOption = {
+  name: string;
+  icon: string;
+  type?: DatabaseType;
+  defaultPort?: number;
+};
+
+type SupportedDatabaseTypeOption = DatabaseTypeOption &
+  Required<Pick<DatabaseTypeOption, "type" | "defaultPort">>;
+
+function isSupportedDatabaseType(option: DatabaseTypeOption): option is SupportedDatabaseTypeOption {
+  return Boolean(option.type && option.defaultPort);
+}
+
+const databaseTypes: DatabaseTypeOption[] = [
   {
     name: "PostgreSQL",
     icon: "/database-icons/postgresql.svg",
@@ -281,8 +295,6 @@ const databaseTypes = [
   }
 ];
 
-type DatabaseTypeOption = (typeof databaseTypes)[number];
-
 function DatabaseTypeModal({
   onClose,
   onSaved
@@ -296,7 +308,7 @@ function DatabaseTypeModal({
   function handleSelect(databaseType: DatabaseTypeOption) {
     setNotice("");
 
-    if (!("type" in databaseType)) {
+    if (!isSupportedDatabaseType(databaseType)) {
       setNotice(`${databaseType.name} support is not wired yet.`);
       return;
     }
@@ -325,7 +337,7 @@ function DatabaseTypeModal({
           </button>
         </div>
 
-        {selectedType && "type" in selectedType ? (
+        {selectedType && isSupportedDatabaseType(selectedType) ? (
           <DatabaseConnectionForm
             databaseType={selectedType}
             onBack={() => setSelectedType(null)}
@@ -363,7 +375,7 @@ function DatabaseConnectionForm({
   onBack,
   onSaved
 }: {
-  databaseType: DatabaseTypeOption & { type: DatabaseType; defaultPort: number };
+  databaseType: SupportedDatabaseTypeOption;
   onBack: () => void;
   onSaved: (database: DatabaseConnection) => void;
 }) {
