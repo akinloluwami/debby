@@ -6,8 +6,7 @@ This guide will help you self-host Debby using Docker Compose.
 
 - Docker Desktop or Docker Engine installed
 - Docker Compose v2.0 or higher
-- At least 2GB of free RAM
-- Ports 3000 and 3001 available on your host machine
+- Ports 4366 and 4466 available on your host machine
 
 ## Quick Start
 
@@ -26,13 +25,13 @@ This guide will help you self-host Debby using Docker Compose.
 
    This will:
    - Build the server and web containers
-   - Start the backend API server on port 3000
-   - Start the web frontend on port 3001
+   - Start the backend API server on port 4466
+   - Start the web frontend on port 4366
    - Create a persistent volume for data storage
 
 3. **Access the application**:
-   - Web Interface: http://localhost:3001
-   - API Server: http://localhost:3000
+   - Web Interface: http://localhost:4366
+   - API Server: http://localhost:4466
 
 ## Configuration
 
@@ -41,14 +40,17 @@ This guide will help you self-host Debby using Docker Compose.
 The default configuration works out of the box, but you can customize it by creating a `.env` file:
 
 ```env
-# CORS origin for the API (defaults to http://localhost:3001)
-CORS_ORIGIN=http://localhost:3001
+# CORS origin for the API. Use commas for multiple origins.
+CORS_ORIGIN=http://localhost:4366
+
+# Required in production. Use a random value of at least 32 characters.
+APP_SECRET=change-me-to-a-random-32-character-minimum-secret
 
 # Data directory inside the container
 DATA_DIR=/app/data
 
-# Server port (if you want to change it, also update docker-compose.yml)
-PORT=3000
+# Server port
+PORT=4466
 ```
 
 ### Custom Ports
@@ -59,11 +61,11 @@ To use different ports, edit the `docker-compose.yml` file:
 services:
   server:
     ports:
-      - "YOUR_PORT:3000" # Change YOUR_PORT to your desired port
+      - "YOUR_PORT:4466" # Change YOUR_PORT to your desired port
 
   web:
     ports:
-      - "YOUR_WEB_PORT:80" # Change YOUR_WEB_PORT to your desired port
+      - "YOUR_WEB_PORT:4366" # Change YOUR_WEB_PORT to your desired port
 ```
 
 Don't forget to update the `CORS_ORIGIN` environment variable if you change the web port.
