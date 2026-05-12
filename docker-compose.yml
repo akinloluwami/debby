@@ -1,0 +1,29 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 4466
+      CORS_ORIGIN: http://localhost:4366
+      DATA_DIR: /app/data
+      APP_SECRET: ${APP_SECRET:?Set APP_SECRET to a random 32+ character value}
+    ports:
+      - "4466:4466"
+    volumes:
+      - debby-data:/app/data
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:4466
+    ports:
+      - "4366:4366"
+    depends_on:
+      - server
+
+volumes:
+  debby-data:
