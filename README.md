@@ -1,6 +1,6 @@
 # Debby - Self-Hosted Database Manager
 
-Spin up and manage multiple database instances (PostgreSQL, MySQL, MongoDB) using Docker through an intuitive web dashboard.
+Debby is a self-hosted database manager for configuring and working with your own database connections. PostgreSQL and MySQL are the first supported database types.
 
 ### Self-Hosting (Production)
 
@@ -11,16 +11,16 @@ Spin up and manage multiple database instances (PostgreSQL, MySQL, MongoDB) usin
 ```bash
 git clone https://github.com/akinloluwami/debby
 cd debby
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
-Server: http://localhost:3000 • Web: http://localhost:3001
+Server: http://localhost:4466 • Web: http://localhost:4366
 
 ## Tech Stack
 
-**Backend:** Hono, tRPC, Dockerode, bcrypt  
-**Frontend:** React 19, TanStack Router/Query, Zustand, Tailwind CSS, shadcn/ui
+**Backend:** Elysia, Bun, SQLite, Argon2id password hashing  
+**Frontend:** React, Vite, TypeScript, custom components, plain CSS
 
 ## Contributing
 
@@ -31,5 +31,3 @@ Contributions welcome! Submit a Pull Request.
 MIT License
 
 ---
-
-Made with ❤️ for the self-hosting community
