@@ -41,7 +41,7 @@ const connectionBody = t.Object({
   sslEnabled: t.Boolean()
 });
 
-function ensureAuthenticated(request: Request, set: { status?: number }) {
+function ensureAuthenticated(request: Request, set: { status?: unknown }) {
   const state = getAuthState(getSessionId(request.headers));
 
   if (!state.authenticated) {
@@ -70,7 +70,7 @@ const app = new Elysia()
       origin: isAllowedCorsOrigin,
       credentials: true,
       allowedHeaders: ["Content-Type"],
-      methods: ["GET", "POST", "OPTIONS"]
+      methods: ["GET", "POST", "DELETE", "OPTIONS"]
     })
   )
   .get("/health", () => ({
